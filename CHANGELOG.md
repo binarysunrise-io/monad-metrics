@@ -1,5 +1,9 @@
 # Change Log
 
+## v0.4.0.0
+
+- Added `Heartbeat` support
+
 ## v0.2.1.1
 
 - Bump `exceptions` upper bound from 0.9 to 0.10

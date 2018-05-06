@@ -42,6 +42,7 @@ module Control.Monad.Metrics
     , timedList
     , label
     , label'
+    , reset
     , Resolution(..)
     -- * The Metrics Type
     -- $metrictype
@@ -67,10 +68,11 @@ import qualified Data.Text                      as Text
 import           System.Clock                   (Clock (..), getTime)
 import           System.IO.Unsafe               (unsafeInterleaveIO)
 import qualified System.Metrics                 as EKG
-import           System.Metrics.Counter         as Counter
-import           System.Metrics.Distribution    as Distribution
-import           System.Metrics.Gauge           as Gauge
-import           System.Metrics.Label           as Label
+import qualified System.Metrics.Counter         as Counter
+import qualified System.Metrics.Distribution    as Distribution
+import qualified System.Metrics.Gauge           as Gauge
+import qualified System.Metrics.Heartbeat       as Heartbeat
+import qualified System.Metrics.Label           as Label
 
 import           Prelude
 
@@ -128,6 +130,7 @@ initializeWith _metricsStore = do
     _metricsDistributions <- newIORef mempty
     _metricsGauges <- newIORef mempty
     _metricsLabels <- newIORef mempty
+    _metricsHeartbeats <- newIORef mempty
     return Metrics{..}
 
 -- | Initializes a 'Metrics' value, creating a new 'System.Metrics.Store'
@@ -238,6 +241,12 @@ label = modifyMetric Label.set id EKG.createLabel _metricsLabels
 -- * /Since v0.1.0.0/
 label' :: (MonadIO m, MonadMetrics m, MetricKey key, key ~ LabelKey m, Show a) => key -> a -> m ()
 label' l = label l . Text.pack . show
+
+-- | Reset the 'Heartbeat' to the current time.
+--
+-- * /Since v0.4.0.0/
+reset :: (MonadIO m, MonadMetrics m, MetricKey key, key ~ HeartbeatKey m) => key -> m ()
+reset key = modifyMetric (\key' _ -> Heartbeat.reset key') id EKG.createHeartbeat _metricsHeartbeats key ()
 
 -- $metrictype
 -- The 'Metric' type contains an 'IORef' to a 'HashMap' from 'Text' labels to

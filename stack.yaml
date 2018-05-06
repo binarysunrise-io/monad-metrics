@@ -2,6 +2,10 @@ resolver: lts-10.4
 
 packages:
 - '.'
+- location:
+    git: https://github.com/binarysunrise-io/ekg-core.git
+    commit: 94e3a6a
+  extra-dep: true
 
 extra-deps: []
 

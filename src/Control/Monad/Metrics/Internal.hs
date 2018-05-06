@@ -34,14 +34,23 @@ import           System.Metrics              (Store)
 import           System.Metrics.Counter      (Counter)
 import           System.Metrics.Distribution (Distribution)
 import           System.Metrics.Gauge        (Gauge)
+import           System.Metrics.Heartbeat    (Heartbeat)
 import           System.Metrics.Label        (Label)
 
-type IdenticalKeyTypes m m' = (CounterKey m ~ CounterKey m', GaugeKey m ~ GaugeKey m', DistributionKey m ~ DistributionKey m', LabelKey m ~ LabelKey m')
+type IdenticalKeyTypes m m' =
+    (CounterKey m       ~ CounterKey m'
+    , GaugeKey m        ~ GaugeKey m'
+    , DistributionKey m ~ DistributionKey m'
+    , LabelKey m        ~ LabelKey m'
+    , HeartbeatKey m    ~ HeartbeatKey m'
+    )
+
 type ValidMetricKeys m =
     ( MetricKey (CounterKey m)
     , MetricKey (GaugeKey m)
     , MetricKey (DistributionKey m)
     , MetricKey (LabelKey m)
+    , MetricKey (HeartbeatKey m)
     )
 
 -- | A type can be an instance of 'MonadMetrics' if it can provide a 'Metrics'
@@ -54,11 +63,13 @@ class Monad m => MonadMetrics m where
     type GaugeKey        m :: *
     type DistributionKey m :: *
     type LabelKey        m :: *
+    type HeartbeatKey    m :: *
 
     type CounterKey m      = Text
     type GaugeKey m        = Text
     type DistributionKey m = Text
     type LabelKey m        = Text
+    type HeartbeatKey m    = Text
 
     getMetrics :: m (Metrics m)
 
@@ -86,6 +97,7 @@ data Metrics m = Metrics
     , _metricsGauges        :: IORef (HashMap (GaugeKey m) Gauge)
     , _metricsDistributions :: IORef (HashMap (DistributionKey m) Distribution)
     , _metricsLabels        :: IORef (HashMap (LabelKey m) Label)
+    , _metricsHeartbeats    :: IORef (HashMap (HeartbeatKey m) Heartbeat)
     , _metricsStore         :: Store
     }
 
@@ -93,31 +105,37 @@ data Metrics m = Metrics
 --
 -- * /Since v0.1.0.0/
 metricsCounters :: Lens' (Metrics m) (IORef (HashMap (CounterKey m) Counter))
-metricsCounters f (Metrics c g d l s) = fmap (\c' -> Metrics c' g d l s) (f c)
+metricsCounters f (Metrics c g d l h s) = fmap (\c' -> Metrics c' g d l h s) (f c)
 
 -- | A lens into the 'Gauge's provided by the 'Metrics'.
 --
 -- * /Since v0.1.0.0/
 metricsGauges :: Lens' (Metrics m) (IORef (HashMap (GaugeKey m) Gauge))
-metricsGauges f (Metrics c g d l s) = fmap (\g' -> Metrics c g' d l s) (f g)
+metricsGauges f (Metrics c g d l h s) = fmap (\g' -> Metrics c g' d l h s) (f g)
 
 -- | A lens into the 'Distribution's provided by the 'Metrics'.
 --
 -- * /Since v0.1.0.0/
 metricsDistributions :: Lens' (Metrics m) (IORef (HashMap (DistributionKey m) Distribution))
-metricsDistributions f (Metrics c g d l s) = fmap (\d' -> Metrics c g d' l s) (f d)
+metricsDistributions f (Metrics c g d l h s) = fmap (\d' -> Metrics c g d' l h s) (f d)
 
 -- | A lens into the 'Label's provided by the 'Metrics'.
 --
 -- * /Since v0.1.0.0/
 metricsLabels :: Lens' (Metrics m) (IORef (HashMap (LabelKey m) Label))
-metricsLabels f (Metrics c g d l s) = fmap (\l' -> Metrics c g d l' s) (f l)
+metricsLabels f (Metrics c g d l h s) = fmap (\l' -> Metrics c g d l' h s) (f l)
+
+-- | A lens into the 'Heartbeats's provided by the 'Metrics'.
+--
+-- * /Since v0.1.0.0/
+metricsHeartbeats :: Lens' (Metrics m) (IORef (HashMap (HeartbeatKey m) Heartbeat))
+metricsHeartbeats f (Metrics c g d l h s) = fmap (\h' -> Metrics c g d l h' s) (f h)
 
 -- | A lens into the 'Store' provided by the 'Metrics'.
 --
 -- * /Since v0.1.0.0/
 metricsStore :: Lens' (Metrics m) Store
-metricsStore f (Metrics c g d l s) = fmap (Metrics c g d l) (f s)
+metricsStore f (Metrics c g d l h s) = fmap (Metrics c g d l h) (f s)
 
 -- | A type representing the resolution of time to use for the 'timed'
 -- metric.
